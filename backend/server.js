@@ -1,6 +1,10 @@
 import dotenv from 'dotenv';
 dotenv.config(); // MUST be first
+import diseasesRoutes from './src/routes/diseases.js';
+import companiesRoutes from './src/routes/companies.js';
 
+// routes
+ 
 import express from 'express';
 import cors from 'cors';
 import patientRoutes from './src/routes/patient.routes.js';
@@ -11,6 +15,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api', patientRoutes);
+app.use('/api/diseases', diseasesRoutes);
+app.use('/api/companies', companiesRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

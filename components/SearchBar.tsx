@@ -11,7 +11,7 @@ export default function SearchBar({ value, onChange }: SearchBarProps) {
     <View style={styles.container}>
       <TextInput
         style={styles.input}
-        placeholder="Search patient"
+        placeholder="Search"
         placeholderTextColor="#ADB5BD"
         value={value}
         onChangeText={onChange}

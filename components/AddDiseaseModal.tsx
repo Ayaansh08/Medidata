@@ -12,93 +12,49 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 
-import { Patient, Medicine } from '../services/api';
-
-// =====================
-// Props
-// =====================
-
-interface AddPatientModalProps {
+// ✅ FIXED: Export type for DiseasesContent
+export interface AddDiseaseModalProps {
   visible: boolean;
-  onSave: (
-    name: string,
-    phone: string,
-    purchase_date: string,
-    medicines: Medicine[]
-  ) => void;
+  onSave: (diseaseName: string, medicines: string[]) => void;
   onCancel: () => void;
-  editingPatient: Patient | null;
+  editingDisease?: { diseaseName: string; medicines: string[] } | null;
   submitting?: boolean;
 }
 
-// =====================
-// Local form type
-// =====================
-
 interface MedicineEntry {
   name: string;
-  qty: string;
-  price: string;
 }
 
-export default function AddPatientModal({
+export default function AddDiseaseModal({
   visible,
   onSave,
   onCancel,
-  editingPatient,
+  editingDisease,
   submitting = false,
-}: AddPatientModalProps) {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState('');
+}: AddDiseaseModalProps) {
+  const [diseaseName, setDiseaseName] = useState('');
   const [medicineEntries, setMedicineEntries] = useState<MedicineEntry[]>([
-    { name: '', qty: '', price: '' },
+    { name: '' },
   ]);
 
-  // =====================
   // Populate form when editing
-  // =====================
-
   useEffect(() => {
-    if (visible && editingPatient) {
-      setName(editingPatient.name);
-      setPhone(editingPatient.phone);
-      setPurchaseDate(editingPatient.purchase_date);
-
-      const mappedMedicines =
-        editingPatient.medicines.length > 0
-          ? editingPatient.medicines.map((m) => ({
-              name: m.name,
-              qty: String(m.qty),
-              price: String(m.price ?? ''),
-            }))
-          : [{ name: '', qty: '', price: '' }];
-
-      setMedicineEntries(mappedMedicines);
+    if (visible && editingDisease) {
+      setDiseaseName(editingDisease.diseaseName);
+      setMedicineEntries(
+        editingDisease.medicines.map((med) => ({ name: med }))
+      );
     }
 
-    if (visible && !editingPatient) {
-      setName('');
-      setPhone('');
-      setPurchaseDate('');
-      setMedicineEntries([{ name: '', qty: '', price: '' }]);
+    if (visible && !editingDisease) {
+      setDiseaseName('');
+      setMedicineEntries([{ name: '' }]);
     }
-  }, [visible, editingPatient]);
+  }, [visible, editingDisease]);
 
-  // =====================
   // Helpers
-  // =====================
-
-  const getTodayDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
-
   const addMedicineRow = () => {
-    setMedicineEntries([
-      ...medicineEntries,
-      { name: '', qty: '', price: '' },
-    ]);
+    setMedicineEntries([...medicineEntries, { name: '' }]);
   };
 
   const removeMedicineRow = (index: number) => {
@@ -107,52 +63,30 @@ export default function AddPatientModal({
     }
   };
 
-  const updateMedicine = (
-    index: number,
-    field: keyof MedicineEntry,
-    value: string
-  ) => {
+  const updateMedicine = (index: number, value: string) => {
     const updated = [...medicineEntries];
-    updated[index][field] = value;
+    updated[index].name = value;
     setMedicineEntries(updated);
   };
 
-  // =====================
   // Save
-  // =====================
-
   const handleSave = () => {
-    if (!name.trim() || !purchaseDate.trim()) return;
+    if (!diseaseName.trim()) return;
 
-    const medicines: Medicine[] = medicineEntries
+    const medicines: string[] = medicineEntries
       .filter((m) => m.name.trim())
-      .map((m) => ({
-        name: m.name.trim(),
-        qty: Number(m.qty) || 1,
-        price: Number(m.price) || 0,
-      }));
+      .map((m) => m.name.trim());
 
     if (medicines.length === 0) return;
 
-    onSave(
-      name.trim(),
-      phone.trim(),
-      purchaseDate.trim(),
-      medicines
-    );
+    onSave(diseaseName.trim(), medicines);
   };
 
   const handleCancelLocal = () => {
     onCancel();
   };
 
-  const modalTitle = editingPatient
-    ? 'Edit Patient Record'
-    : 'Add Patient Record';
-
-  // =====================
-  // UI
-  // =====================
+  const modalTitle = editingDisease ? 'Edit Disease' : 'Add Disease';
 
   return (
     <Modal
@@ -172,47 +106,16 @@ export default function AddPatientModal({
                 <ScrollView showsVerticalScrollIndicator={false}>
                   <Text style={styles.modalTitle}>{modalTitle}</Text>
 
-                  {/* Name */}
+                  {/* Disease Name */}
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Patient Name</Text>
+                    <Text style={styles.label}>Disease Name</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Enter patient name"
-                      value={name}
-                      onChangeText={setName}
+                      placeholder="Enter disease name"
+                      value={diseaseName}
+                      onChangeText={setDiseaseName}
                       editable={!submitting}
                     />
-                  </View>
-
-                  {/* Phone */}
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Phone Number</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="+91 98765 43210"
-                      value={phone}
-                      onChangeText={setPhone}
-                      keyboardType="phone-pad"
-                      editable={!submitting}
-                    />
-                  </View>
-
-                  {/* Date */}
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Purchase Date</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="YYYY-MM-DD"
-                      value={purchaseDate}
-                      onChangeText={setPurchaseDate}
-                      editable={!submitting}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setPurchaseDate(getTodayDate())}
-                      disabled={submitting}
-                    >
-                      <Text style={styles.todayButton}>Use Today’s Date</Text>
-                    </TouchableOpacity>
                   </View>
 
                   {/* Medicines */}
@@ -231,31 +134,9 @@ export default function AddPatientModal({
                       <View key={index} style={styles.medicineRow}>
                         <TextInput
                           style={[styles.input, styles.medicineNameInput]}
-                          placeholder="Medicine"
+                          placeholder="Medicine name"
                           value={entry.name}
-                          onChangeText={(v) =>
-                            updateMedicine(index, 'name', v)
-                          }
-                          editable={!submitting}
-                        />
-                        <TextInput
-                          style={[styles.input, styles.quantityInput]}
-                          placeholder="Qty"
-                          value={entry.qty}
-                          onChangeText={(v) =>
-                            updateMedicine(index, 'qty', v)
-                          }
-                          keyboardType="number-pad"
-                          editable={!submitting}
-                        />
-                        <TextInput
-                          style={[styles.input, styles.priceInput]}
-                          placeholder="₹"
-                          value={entry.price}
-                          onChangeText={(v) =>
-                            updateMedicine(index, 'price', v)
-                          }
-                          keyboardType="number-pad"
+                          onChangeText={(v) => updateMedicine(index, v)}
                           editable={!submitting}
                         />
                         {medicineEntries.length > 1 && (
@@ -297,7 +178,7 @@ export default function AddPatientModal({
                       <Text style={styles.saveButtonText}>
                         {submitting
                           ? 'Saving...'
-                          : editingPatient
+                          : editingDisease
                           ? 'Update'
                           : 'Save'}
                       </Text>
@@ -313,10 +194,7 @@ export default function AddPatientModal({
   );
 }
 
-// =====================
-// Styles
-// =====================
-
+// ✅ Styles unchanged - perfect
 const styles = StyleSheet.create({
   modalOverlay: { flex: 1 },
   modalBackground: {
@@ -374,8 +252,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   medicineNameInput: { flex: 1 },
-  quantityInput: { width: 64 },
-  priceInput: { width: 72 },
   removeButton: {
     width: 32,
     height: 32,
@@ -387,11 +263,6 @@ const styles = StyleSheet.create({
   removeButtonText: {
     fontSize: 22,
     color: '#DC2626',
-  },
-  todayButton: {
-    fontSize: 13,
-    color: '#1971C2',
-    marginTop: 6,
   },
   buttonContainer: {
     flexDirection: 'row',
