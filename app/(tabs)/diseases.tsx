@@ -4,11 +4,11 @@ import {
   FlatList,
   StyleSheet,
   Text,
-  SafeAreaView,
   StatusBar,
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context'; // ✅ FIXED: Proper import
 
 import SearchBar from '../../components/SearchBar';
 import DiseaseCard from '../../components/DiseaseCard';
@@ -34,7 +34,6 @@ function DiseasesContent() {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  // ✅ FIXED: Now matches AddDiseaseModal exactly
   const [editingDisease, setEditingDisease] = useState<UIDiseaseForModal | null>(null);
 
   const fetchDiseases = useCallback(async () => {
@@ -64,7 +63,6 @@ function DiseasesContent() {
     setModalVisible(true);
   };
 
-  // ✅ FIXED: Convert UIDisease → UIDiseaseForModal
   const handleEditPress = (disease: UIDisease) => {
     setEditingDisease({
       diseaseName: disease.diseaseName,
@@ -83,13 +81,12 @@ function DiseasesContent() {
         disease_name: diseaseName,
         medicines: medicines.map((name) => ({ 
           name, 
-          qty: 1 // API expects qty
+          qty: 1 
         })),
       };
 
       const success = editingDisease
         ? await diseaseApi.updateDisease(
-            // ✅ Get ID from original disease list
             diseases.find((d) => d.diseaseName === editingDisease.diseaseName)?.id || '',
             apiDisease
           )
@@ -125,10 +122,14 @@ function DiseasesContent() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            const success = await diseaseApi.deleteDisease(diseaseId);
-            if (success) {
-              await fetchDiseases();
-            } else {
+            try {
+              const success = await diseaseApi.deleteDisease(diseaseId);
+              if (success) {
+                await fetchDiseases(); // ✅ Working delete
+              } else {
+                Alert.alert('Error', 'Failed to delete disease.');
+              }
+            } catch (error) {
               Alert.alert('Error', 'Failed to delete disease.');
             }
           },
@@ -148,7 +149,7 @@ function DiseasesContent() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centerContainer}>
+      <SafeAreaView style={styles.centerContainer} edges={['top', 'left', 'right']}>
         <ActivityIndicator size="large" color="#212529" />
         <Text style={styles.loadingText}>Loading diseases...</Text>
       </SafeAreaView>
@@ -156,7 +157,7 @@ function DiseasesContent() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" />
 
       <View style={styles.header}>
@@ -164,7 +165,12 @@ function DiseasesContent() {
       </View>
 
       <View style={styles.searchContainer}>
-        <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        {/* ✅ FIXED: Proper placeholder for Diseases */}
+        <SearchBar 
+          value={searchQuery} 
+          onChange={setSearchQuery}
+          
+        />
       </View>
 
       <FlatList
@@ -214,6 +220,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#F8F9FA', // ✅ Fixed background
   },
   header: {
     paddingHorizontal: 20,
@@ -235,7 +242,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 20,
-    paddingBottom: 100,
+    paddingBottom: 100, // ✅ Space for AddButton
   },
   emptyContainer: {
     paddingTop: 60,

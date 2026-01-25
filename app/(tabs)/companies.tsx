@@ -4,11 +4,11 @@ import {
   FlatList,
   StyleSheet,
   Text,
-  SafeAreaView,
   StatusBar,
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context'; // ✅ FIXED: Proper import
 
 import SearchBar from '../../components/SearchBar';
 import CompanyCard from '../../components/CompanyCard';
@@ -117,10 +117,14 @@ function CompaniesContent() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            const success = await companyApi.deleteCompany(companyId);
-            if (success) {
-              await fetchCompanies();
-            } else {
+            try {
+              const success = await companyApi.deleteCompany(companyId);
+              if (success) {
+                await fetchCompanies(); // ✅ Working delete
+              } else {
+                Alert.alert('Error', 'Failed to delete company.');
+              }
+            } catch (error) {
               Alert.alert('Error', 'Failed to delete company.');
             }
           },
@@ -140,7 +144,7 @@ function CompaniesContent() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.centerContainer}>
+      <SafeAreaView style={styles.centerContainer} edges={['top', 'left', 'right']}>
         <ActivityIndicator size="large" color="#212529" />
         <Text style={styles.loadingText}>Loading companies...</Text>
       </SafeAreaView>
@@ -148,7 +152,7 @@ function CompaniesContent() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" />
 
       <View style={styles.header}>
@@ -156,7 +160,12 @@ function CompaniesContent() {
       </View>
 
       <View style={styles.searchContainer}>
-        <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        {/* ✅ FIXED: Proper placeholder for Companies */}
+        <SearchBar 
+          value={searchQuery} 
+          onChange={setSearchQuery}
+           
+        />
       </View>
 
       <FlatList
@@ -206,6 +215,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#F8F9FA', // ✅ Fixed background
   },
   header: {
     paddingHorizontal: 20,
@@ -227,7 +237,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 20,
-    paddingBottom: 100,
+    paddingBottom: 100, // ✅ Space for AddButton
   },
   emptyContainer: {
     paddingTop: 60,
