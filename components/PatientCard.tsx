@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Medicine } from '../services/api';
 
 interface PatientCardProps {
   name: string;
   phone: string;
-  purchaseDate: string; 
+  purchaseDate: string;
   medicines: Medicine[];
   onEdit: () => void;
   onDelete: () => void;
@@ -19,73 +19,82 @@ export default function PatientCard({
   onEdit,
   onDelete,
 }: PatientCardProps) {
+  const [expanded, setExpanded] = useState(false);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    if (Number.isNaN(date.getTime())) return dateString;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
   };
 
-  // ✅ FIXED: Use existing Medicine properties (price, not mrp)
-  const totalPrice = medicines.reduce((sum, m) => sum + m.price, 0);
+  const totalQty = useMemo(
+    () => medicines.reduce((sum, medicine) => sum + (Number(medicine.qty) || 0), 0),
+    [medicines]
+  );
+
+  const totalPrice = useMemo(
+    () =>
+      medicines.reduce(
+        (sum, medicine) =>
+          sum + (Number(medicine.price) || 0) * (Number(medicine.qty) || 0),
+        0
+      ),
+    [medicines]
+  );
 
   return (
     <View style={styles.card}>
-      <TouchableOpacity style={styles.cardContent} activeOpacity={0.95}>
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <View style={styles.patientInfo}>
-            <Text style={styles.patientName}>{name}</Text>
-            {phone ? <Text style={styles.phoneNumber}>{phone}</Text> : null}
-          </View>
-
-          <TouchableOpacity style={styles.editButton} onPress={onEdit}>
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.summaryRow}
+        activeOpacity={0.9}
+        onPress={() => setExpanded((prev) => !prev)}
+      >
+        <View style={styles.summaryMain}>
+          <Text style={styles.summaryName} numberOfLines={1}>
+            {name}
+          </Text>
+          <Text style={styles.summaryDate}>{formatDate(purchaseDate)}</Text>
         </View>
-
-        {/* Date */}
-        <Text style={styles.purchaseDate}>
-          {formatDate(purchaseDate)}
-        </Text>
-
-        {/* Medicines - Show price only */}
-        <View style={styles.medicinesContainer}>
-          {medicines.map((medicine, index) => (
-            <View key={index} style={styles.medicineChip}>
-              <Text style={styles.medicineText}>
-                {medicine.name}
-              </Text>
-
-              {/* ✅ FIXED: Use medicine.price (existing property) */}
-              <View style={styles.priceRow}>
-                <Text style={styles.priceText}>
-                  ₹{medicine.price}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Total Price */}
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total Price</Text>
-          <Text style={styles.totalAmount}>₹{totalPrice}</Text>
-        </View>
+        <Text style={styles.chevron}>{expanded ? '^' : 'v'}</Text>
       </TouchableOpacity>
 
-      {/* Actions */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={onDelete}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.deleteButtonText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
+      {expanded ? (
+        <View style={styles.expandedContent}>
+          {phone ? <Text style={styles.phoneNumber}>Phone: {phone}</Text> : null}
+
+          <View style={styles.medicinesContainer}>
+            {medicines.map((medicine, index) => (
+              <View key={`${medicine.name}-${index}`} style={styles.medicineRow}>
+                <Text style={styles.medicineName} numberOfLines={1}>
+                  {medicine.name}
+                </Text>
+                <Text style={styles.medicineMeta}>
+                  Qty {medicine.qty} - Rs {medicine.price}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalAmount}>
+              Qty {totalQty} - Rs {totalPrice}
+            </Text>
+          </View>
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.editButton} onPress={onEdit} activeOpacity={0.8}>
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteButton} onPress={onDelete} activeOpacity={0.8}>
+              <Text style={styles.deleteButtonText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -94,117 +103,131 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowRadius: 14,
+    elevation: 2,
   },
-  cardContent: {
-    padding: 18,
-  },
-  headerRow: {
+  summaryRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    alignItems: 'center',
   },
-  patientInfo: { flex: 1 },
-  patientName: {
-    fontSize: 19,
+  summaryMain: {
+    flex: 1,
+  },
+  summaryName: {
+    fontSize: 17,
+    color: '#0F172A',
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  summaryDate: {
+    marginTop: 3,
+    fontSize: 12,
+    color: '#64748B',
     fontWeight: '600',
-    color: '#212529',
-    marginBottom: 2,
+  },
+  chevron: {
+    marginLeft: 10,
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '800',
+  },
+  expandedContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
   },
   phoneNumber: {
-    fontSize: 14,
-    color: '#6C757D',
+    fontSize: 13,
+    color: '#475569',
+    marginTop: 10,
+    marginBottom: 10,
     fontFamily: 'monospace',
   },
-  editButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#E3F2FD',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#BBDEFB',
-  },
-  editButtonText: {
-    fontSize: 12,
-    color: '#1976D2',
-    fontWeight: '600',
-  },
-  purchaseDate: {
-    fontSize: 13,
-    color: '#6C757D',
-    marginBottom: 14,
-  },
   medicinesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
-  medicineChip: {
-    backgroundColor: '#E7F5FF',
-    paddingHorizontal: 12,
+  medicineRow: {
     paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#D0EBFF',
+    borderColor: '#E2E8F0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
   },
-  medicineText: {
+  medicineName: {
+    flex: 1,
     fontSize: 13,
-    color: '#1971C2',
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  // ✅ FIXED: Price display (uses existing medicine.price)
-  priceRow: {
-    alignItems: 'flex-end',
-  },
-  priceText: {
-    fontSize: 12,
-    color: '#0B7285',
+    color: '#1E293B',
     fontWeight: '600',
   },
+  medicineMeta: {
+    fontSize: 12,
+    color: '#0F766E',
+    fontWeight: '700',
+  },
   totalRow: {
-    marginTop: 16,
+    marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F3F5',
+    borderTopColor: '#E2E8F0',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   totalLabel: {
-    fontSize: 14,
-    color: '#495057',
-    fontWeight: '600',
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '700',
   },
   totalAmount: {
-    fontSize: 15,
-    color: '#212529',
-    fontWeight: '700',
+    fontSize: 13,
+    color: '#0F172A',
+    fontWeight: '800',
   },
   actionButtons: {
     flexDirection: 'row',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F8F9FA',
+    marginTop: 12,
+    gap: 10,
+  },
+  editButton: {
+    flex: 1,
+    paddingVertical: 9,
+    backgroundColor: '#E0F2FE',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    alignItems: 'center',
+  },
+  editButtonText: {
+    fontSize: 13,
+    color: '#075985',
+    fontWeight: '700',
   },
   deleteButton: {
     flex: 1,
-    paddingVertical: 8,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
+    paddingVertical: 9,
+    backgroundColor: '#FFF1F2',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: '#FECDD3',
     alignItems: 'center',
   },
   deleteButtonText: {
-    fontSize: 14,
-    color: '#DC2626',
-    fontWeight: '600',
+    fontSize: 13,
+    color: '#BE123C',
+    fontWeight: '700',
   },
 });

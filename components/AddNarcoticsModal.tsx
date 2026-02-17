@@ -12,9 +12,9 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 
-import { Patient, Medicine } from '../services/api';
+import { Narcotic, Medicine } from '../services/api';
 
-interface AddPatientModalProps {
+interface AddNarcoticsModalProps {
   visible: boolean;
   onSave: (
     name: string,
@@ -23,7 +23,7 @@ interface AddPatientModalProps {
     medicines: Medicine[]
   ) => void;
   onCancel: () => void;
-  editingPatient: Patient | null;
+  editingNarcotic: Narcotic | null;
   submitting?: boolean;
 }
 
@@ -59,13 +59,13 @@ const normalizeToApiDate = (value: string) => {
   return `${match[3]}-${match[2]}-${match[1]}`;
 };
 
-export default function AddPatientModal({
+export default function AddNarcoticsModal({
   visible,
   onSave,
   onCancel,
-  editingPatient,
+  editingNarcotic,
   submitting = false,
-}: AddPatientModalProps) {
+}: AddNarcoticsModalProps) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [purchaseDate, setPurchaseDate] = useState('');
@@ -74,14 +74,14 @@ export default function AddPatientModal({
   ]);
 
   useEffect(() => {
-    if (visible && editingPatient) {
-      setName(editingPatient.name);
-      setPhone(editingPatient.phone);
-      setPurchaseDate(formatToDisplayDate(editingPatient.purchase_date));
+    if (visible && editingNarcotic) {
+      setName(editingNarcotic.name);
+      setPhone(editingNarcotic.phone);
+      setPurchaseDate(formatToDisplayDate(editingNarcotic.purchase_date));
 
       const mappedMedicines =
-        editingPatient.medicines.length > 0
-          ? editingPatient.medicines.map((m) => ({
+        editingNarcotic.medicines.length > 0
+          ? editingNarcotic.medicines.map((m) => ({
               name: m.name,
               qty: String(m.qty),
               price: String(m.price ?? ''),
@@ -91,13 +91,13 @@ export default function AddPatientModal({
       setMedicineEntries(mappedMedicines);
     }
 
-    if (visible && !editingPatient) {
+    if (visible && !editingNarcotic) {
       setName('');
       setPhone('');
       setPurchaseDate('');
       setMedicineEntries([{ name: '', qty: '', price: '' }]);
     }
-  }, [visible, editingPatient]);
+  }, [visible, editingNarcotic]);
 
   const getTodayDate = () => {
     const today = new Date();
@@ -142,7 +142,7 @@ export default function AddPatientModal({
     onSave(name.trim(), phone.trim(), apiPurchaseDate, medicines);
   };
 
-  const modalTitle = editingPatient ? 'Edit Patient Record' : 'Add Patient Record';
+  const modalTitle = editingNarcotic ? 'Edit Narcotic Record' : 'Add Narcotic Record';
 
   return (
     <Modal
@@ -286,7 +286,7 @@ export default function AddPatientModal({
                       disabled={submitting}
                     >
                       <Text style={styles.saveButtonText}>
-                        {submitting ? 'Saving...' : editingPatient ? 'Update' : 'Save'}
+                        {submitting ? 'Saving...' : editingNarcotic ? 'Update' : 'Save'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     color: '#334155',
   },
   saveButton: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#212529',
   },
   saveButtonText: {
     fontSize: 16,

@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // ✅ FIXED: Proper import
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import SearchBar from '../../components/SearchBar';
 import DiseaseCard from '../../components/DiseaseCard';
@@ -16,7 +16,6 @@ import AddButton from '../../components/AddButton';
 import AddDiseaseModal from '../../components/AddDiseaseModal';
 import { diseaseApi, Disease } from '../../services/diseaseApi';
 
-// ✅ FIXED: Modal expects this exact type
 interface UIDiseaseForModal {
   diseaseName: string;
   medicines: string[];
@@ -54,9 +53,9 @@ function DiseasesContent() {
     fetchDiseases();
   }, [fetchDiseases]);
 
-  const filteredDiseases = diseases.filter((disease) =>
-    disease.diseaseName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredDiseases = diseases
+    .filter((disease) => disease.diseaseName.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => a.diseaseName.localeCompare(b.diseaseName, 'en', { sensitivity: 'base' }));
 
   const handleAddPress = () => {
     setEditingDisease(null);
@@ -79,10 +78,7 @@ function DiseasesContent() {
     try {
       const apiDisease = {
         disease_name: diseaseName,
-        medicines: medicines.map((name) => ({ 
-          name, 
-          qty: 1 
-        })),
+        medicines: medicines.map((name) => ({ name, qty: 1 })),
       };
 
       const success = editingDisease
@@ -125,7 +121,7 @@ function DiseasesContent() {
             try {
               const success = await diseaseApi.deleteDisease(diseaseId);
               if (success) {
-                await fetchDiseases(); // ✅ Working delete
+                await fetchDiseases();
               } else {
                 Alert.alert('Error', 'Failed to delete disease.');
               }
@@ -150,7 +146,7 @@ function DiseasesContent() {
   if (loading) {
     return (
       <SafeAreaView style={styles.centerContainer} edges={['top', 'left', 'right']}>
-        <ActivityIndicator size="large" color="#212529" />
+        <ActivityIndicator size="large" color="#0F172A" />
         <Text style={styles.loadingText}>Loading diseases...</Text>
       </SafeAreaView>
     );
@@ -165,12 +161,7 @@ function DiseasesContent() {
       </View>
 
       <View style={styles.searchContainer}>
-        {/* ✅ FIXED: Proper placeholder for Diseases */}
-        <SearchBar 
-          value={searchQuery} 
-          onChange={setSearchQuery}
-          
-        />
+        <SearchBar value={searchQuery} onChange={setSearchQuery} />
       </View>
 
       <FlatList
@@ -182,21 +173,17 @@ function DiseasesContent() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              {searchQuery
-                ? 'No diseases match your search'
-                : 'No disease records found'}
+              {searchQuery ? 'No diseases match your search' : 'No disease records found'}
             </Text>
-            {!searchQuery && (
-              <Text style={styles.emptySubtext}>
-                Tap + to add your first disease
-              </Text>
-            )}
+            {!searchQuery ? (
+              <Text style={styles.emptySubtext}>Tap + to add your first disease</Text>
+            ) : null}
           </View>
         }
       />
 
       <AddButton onPress={handleAddPress} />
-      
+
       <AddDiseaseModal
         visible={modalVisible}
         onSave={handleSaveDisease}
@@ -213,55 +200,59 @@ export default DiseasesContent;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F1F5F9',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#F8F9FA', // ✅ Fixed background
+    backgroundColor: '#F1F5F9',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: '#E2E8F0',
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '600',
-    color: '#212529',
-    letterSpacing: -0.5,
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.7,
   },
   searchContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 12,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   listContent: {
-    padding: 20,
-    paddingBottom: 100, // ✅ Space for AddButton
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 110,
   },
   emptyContainer: {
-    paddingTop: 60,
+    paddingTop: 72,
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 18,
-    color: '#ADB5BD',
-    fontWeight: '500',
+    fontSize: 17,
+    color: '#94A3B8',
+    fontWeight: '600',
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 15,
-    color: '#6C757D',
+    fontSize: 14,
+    color: '#64748B',
     marginTop: 8,
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 16,
-    color: '#6C757D',
+    fontSize: 15,
+    color: '#64748B',
   },
 });

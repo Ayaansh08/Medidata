@@ -5,102 +5,89 @@ import {
   StyleSheet,
   Text,
   StatusBar,
-  ActivityIndicator,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import NarcoticsCard from '../../components/NarcoticsCard';
 import SearchBar from '../../components/SearchBar';
-import CompanyCard from '../../components/CompanyCard';
 import AddButton from '../../components/AddButton';
-import AddCompanyModal from '../../components/AddCompanyModal';
-import { companyApi, Company } from '../../services/companyApi';
+import AddNarcoticsModal from '../../components/AddNarcoticsModal';
+import { apiService, Narcotic, Medicine } from '../../services/api';
 
-interface UICompany {
-  id: string;
-  companyName: string;
-  medicines: { name: string; mrp: number }[];
-}
-
-interface UICompanyForModal {
-  companyName: string;
-  medicines: { name: string; mrp: number }[];
-}
-
-function CompaniesContent() {
+function NarcoticsContent() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [companies, setCompanies] = useState<UICompany[]>([]);
+  const [narcotics, setNarcotics] = useState<Narcotic[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<UICompanyForModal | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingNarcotic, setEditingNarcotic] = useState<Narcotic | null>(null);
 
-  const fetchCompanies = useCallback(async () => {
+  const fetchNarcotics = useCallback(async () => {
     setLoading(true);
-    const data: Company[] = await companyApi.getCompanies();
-
-    const mapped: UICompany[] = data.map((c) => ({
-      id: c.id,
-      companyName: c.company_name,
-      medicines: [...c.medicines].sort((a, b) =>
-        a.name.localeCompare(b.name, 'en', { sensitivity: 'base' })
-      ),
-    }));
-
-    setCompanies(mapped);
+    const fetchedNarcotics = await apiService.getNarcotics();
+    setNarcotics(fetchedNarcotics);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchCompanies();
-  }, [fetchCompanies]);
+    fetchNarcotics();
+  }, [fetchNarcotics]);
 
-  const filteredCompanies = companies
-    .filter((company) => company.companyName.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) =>
-      a.companyName.localeCompare(b.companyName, 'en', { sensitivity: 'base' })
-    );
+  const filteredNarcotics = narcotics
+    .filter((record) => {
+      const lowerQuery = searchQuery.toLowerCase();
+      return (
+        record.name.toLowerCase().includes(lowerQuery) ||
+        (record.phone && record.phone.toLowerCase().includes(lowerQuery))
+      );
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
 
   const handleAddPress = () => {
-    setEditingCompany(null);
+    setEditingNarcotic(null);
     setModalVisible(true);
   };
 
-  const handleEditPress = (company: UICompany) => {
-    setEditingCompany({
-      companyName: company.companyName,
-      medicines: company.medicines,
-    });
+  const handleEditPress = (record: Narcotic) => {
+    setEditingNarcotic(record);
     setModalVisible(true);
   };
 
-  const handleSaveCompany = async (companyName: string, medicines: { name: string; mrp: number }[]) => {
+  const handleSaveNarcotic = async (
+    name: string,
+    phone: string,
+    purchase_date: string,
+    medicines: Medicine[]
+  ) => {
     if (submitting) return;
-
     setSubmitting(true);
 
     try {
-      const apiCompany = {
-        company_name: companyName,
-        medicines,
-      };
-
-      const success = editingCompany
-        ? await companyApi.updateCompany(
-            companies.find((c) => c.companyName === editingCompany.companyName)?.id || '',
-            apiCompany
-          )
-        : await companyApi.addCompany(apiCompany);
+      const success = editingNarcotic
+        ? await apiService.updateNarcotic(editingNarcotic.id, {
+            name,
+            phone,
+            purchase_date,
+            medicines,
+          })
+        : await apiService.addNarcotic({
+            name,
+            phone,
+            purchase_date,
+            medicines,
+          });
 
       if (success) {
-        await fetchCompanies();
+        await fetchNarcotics();
         setModalVisible(false);
-        setEditingCompany(null);
+        setEditingNarcotic(null);
       } else {
-        Alert.alert('Error', 'Failed to save company. Please try again.');
+        Alert.alert('Error', 'Failed to save narcotic record. Please try again.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to save company. Please try again.');
+      Alert.alert('Error', 'Failed to save narcotic record. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -108,13 +95,13 @@ function CompaniesContent() {
 
   const handleCancel = () => {
     setModalVisible(false);
-    setEditingCompany(null);
+    setEditingNarcotic(null);
   };
 
-  const handleDeleteCompany = (companyId: string) => {
+  const handleDeleteNarcotic = (id: string) => {
     Alert.alert(
-      'Delete Company',
-      'Are you sure you want to delete this company record?',
+      'Delete Record',
+      'Are you sure you want to delete this narcotic record?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -122,14 +109,14 @@ function CompaniesContent() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const success = await companyApi.deleteCompany(companyId);
+              const success = await apiService.deleteNarcotic(id);
               if (success) {
-                await fetchCompanies();
+                await fetchNarcotics();
               } else {
-                Alert.alert('Error', 'Failed to delete company.');
+                Alert.alert('Error', 'Failed to delete record');
               }
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete company.');
+              Alert.alert('Error', 'Failed to delete record');
             }
           },
         },
@@ -137,20 +124,22 @@ function CompaniesContent() {
     );
   };
 
-  const renderCompanyCard = ({ item }: { item: UICompany }) => (
-    <CompanyCard
-      companyName={item.companyName}
+  const renderNarcoticsCard = ({ item }: { item: Narcotic }) => (
+    <NarcoticsCard
+      name={item.name}
+      phone={item.phone}
+      purchaseDate={item.purchase_date}
       medicines={item.medicines}
       onEdit={() => handleEditPress(item)}
-      onDelete={() => handleDeleteCompany(item.id)}
+      onDelete={() => handleDeleteNarcotic(item.id)}
     />
   );
 
   if (loading) {
     return (
       <SafeAreaView style={styles.centerContainer} edges={['top', 'left', 'right']}>
-        <ActivityIndicator size="large" color="#0F172A" />
-        <Text style={styles.loadingText}>Loading companies...</Text>
+        <ActivityIndicator size="large" color="#212529" />
+        <Text style={styles.loadingText}>Loading narcotics...</Text>
       </SafeAreaView>
     );
   }
@@ -160,26 +149,33 @@ function CompaniesContent() {
       <StatusBar barStyle="dark-content" />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Companies</Text>
+        <Text style={styles.headerTitle}>Narcotics</Text>
       </View>
 
       <View style={styles.searchContainer}>
-        <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+        />
       </View>
 
       <FlatList
-        data={filteredCompanies}
+        data={filteredNarcotics}
         keyExtractor={(item) => item.id}
-        renderItem={renderCompanyCard}
+        renderItem={renderNarcoticsCard}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              {searchQuery ? 'No companies match your search' : 'No company records found'}
+              {searchQuery
+                ? 'No records match your search'
+                : 'No narcotic records found'}
             </Text>
             {!searchQuery ? (
-              <Text style={styles.emptySubtext}>Tap + to add your first company</Text>
+              <Text style={styles.emptySubtext}>
+                Tap + to add your first record
+              </Text>
             ) : null}
           </View>
         }
@@ -187,18 +183,20 @@ function CompaniesContent() {
 
       <AddButton onPress={handleAddPress} />
 
-      <AddCompanyModal
+      <AddNarcoticsModal
         visible={modalVisible}
-        onSave={handleSaveCompany}
+        onSave={handleSaveNarcotic}
         onCancel={handleCancel}
-        editingCompany={editingCompany}
+        editingNarcotic={editingNarcotic}
         submitting={submitting}
       />
     </SafeAreaView>
   );
 }
 
-export default CompaniesContent;
+export default function NarcoticsScreen() {
+  return <NarcoticsContent />;
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -207,10 +205,10 @@ const styles = StyleSheet.create({
   },
   centerContainer: {
     flex: 1,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#F1F5F9',
   },
   header: {
     paddingHorizontal: 18,

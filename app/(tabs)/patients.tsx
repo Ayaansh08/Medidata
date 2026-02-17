@@ -35,14 +35,16 @@ function HomeScreenContent() {
     fetchPatients();
   }, [fetchPatients]);
 
-  // ✅ FIXED: Search by NAME AND PHONE NUMBER (OR logic)
-  const filteredPatients = patients.filter((patient) => {
-    const lowerQuery = searchQuery.toLowerCase();
-    return (
-      patient.name.toLowerCase().includes(lowerQuery) ||
-      (patient.phone && patient.phone.toLowerCase().includes(lowerQuery))
-    );
-  });
+  // âœ… FIXED: Search by NAME AND PHONE NUMBER (OR logic)
+  const filteredPatients = patients
+    .filter((patient) => {
+      const lowerQuery = searchQuery.toLowerCase();
+      return (
+        patient.name.toLowerCase().includes(lowerQuery) ||
+        (patient.phone && patient.phone.toLowerCase().includes(lowerQuery))
+      );
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
 
   const handleAddPress = () => {
     setEditingPatient(null);
@@ -153,7 +155,7 @@ function HomeScreenContent() {
       </View>
 
       <View style={styles.searchContainer}>
-        {/* ✅ FIXED: Added placeholder + SafeArea edges */}
+        {/* âœ… FIXED: Added placeholder + SafeArea edges */}
         <SearchBar 
           value={searchQuery} 
           onChange={setSearchQuery}
@@ -203,55 +205,59 @@ export default function PatientsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F1F5F9',
   },
   centerContainer: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
+    borderBottomColor: '#E2E8F0',
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '600',
-    color: '#212529',
-    letterSpacing: -0.5,
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.7,
   },
   searchContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 12,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   listContent: {
-    padding: 20,
-    paddingBottom: 100,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 110,
   },
   emptyContainer: {
-    paddingTop: 60,
+    paddingTop: 72,
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 18,
-    color: '#ADB5BD',
-    fontWeight: '500',
+    fontSize: 17,
+    color: '#94A3B8',
+    fontWeight: '600',
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 15,
-    color: '#6C757D',
+    fontSize: 14,
+    color: '#64748B',
     marginTop: 8,
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 16,
-    color: '#6C757D',
+    fontSize: 15,
+    color: '#64748B',
   },
 });

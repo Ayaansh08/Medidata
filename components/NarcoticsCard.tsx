@@ -1,23 +1,47 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Medicine } from '../services/api';
 
-interface DiseaseCardProps {
-  diseaseName: string;
-  medicines: { name: string }[];
-  onEdit?: () => void;
-  onDelete?: () => void;
+interface NarcoticsCardProps {
+  name: string;
+  phone: string;
+  purchaseDate: string;
+  medicines: Medicine[];
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-export default function DiseaseCard({
-  diseaseName,
+export default function NarcoticsCard({
+  name,
+  phone,
+  purchaseDate,
   medicines,
   onEdit,
   onDelete,
-}: DiseaseCardProps) {
+}: NarcoticsCardProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const sortedMedicines = useMemo(
-    () => [...medicines].sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' })),
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return dateString;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  const totalQty = useMemo(
+    () => medicines.reduce((sum, medicine) => sum + (Number(medicine.qty) || 0), 0),
+    [medicines]
+  );
+
+  const totalPrice = useMemo(
+    () =>
+      medicines.reduce(
+        (sum, medicine) =>
+          sum + (Number(medicine.price) || 0) * (Number(medicine.qty) || 0),
+        0
+      ),
     [medicines]
   );
 
@@ -30,39 +54,45 @@ export default function DiseaseCard({
       >
         <View style={styles.summaryMain}>
           <Text style={styles.summaryName} numberOfLines={1}>
-            {diseaseName}
+            {name}
           </Text>
-          <Text style={styles.summaryMeta}>{sortedMedicines.length} medicines</Text>
+          <Text style={styles.summaryDate}>{formatDate(purchaseDate)}</Text>
         </View>
         <Text style={styles.chevron}>{expanded ? '^' : 'v'}</Text>
       </TouchableOpacity>
 
       {expanded ? (
         <View style={styles.expandedContent}>
+          {phone ? <Text style={styles.phoneNumber}>Phone: {phone}</Text> : null}
+
           <View style={styles.medicinesContainer}>
-            {sortedMedicines.map((medicine, index) => (
+            {medicines.map((medicine, index) => (
               <View key={`${medicine.name}-${index}`} style={styles.medicineRow}>
                 <Text style={styles.medicineName} numberOfLines={1}>
                   {medicine.name}
+                </Text>
+                <Text style={styles.medicineMeta}>
+                  Qty {medicine.qty} - Rs {medicine.price}
                 </Text>
               </View>
             ))}
           </View>
 
-          {(onEdit || onDelete) ? (
-            <View style={styles.actionButtons}>
-              {onEdit ? (
-                <TouchableOpacity style={styles.editButton} onPress={onEdit} activeOpacity={0.8}>
-                  <Text style={styles.editButtonText}>Edit</Text>
-                </TouchableOpacity>
-              ) : null}
-              {onDelete ? (
-                <TouchableOpacity style={styles.deleteButton} onPress={onDelete} activeOpacity={0.8}>
-                  <Text style={styles.deleteButtonText}>Delete</Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-          ) : null}
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalAmount}>
+              Qty {totalQty} - Rs {totalPrice}
+            </Text>
+          </View>
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.editButton} onPress={onEdit} activeOpacity={0.8}>
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteButton} onPress={onDelete} activeOpacity={0.8}>
+              <Text style={styles.deleteButtonText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : null}
     </View>
@@ -98,7 +128,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.2,
   },
-  summaryMeta: {
+  summaryDate: {
     marginTop: 3,
     fontSize: 12,
     color: '#64748B',
@@ -116,9 +146,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
   },
+  phoneNumber: {
+    fontSize: 13,
+    color: '#475569',
+    marginTop: 10,
+    marginBottom: 10,
+    fontFamily: 'monospace',
+  },
   medicinesContainer: {
     gap: 8,
-    marginTop: 10,
   },
   medicineRow: {
     paddingVertical: 8,
@@ -127,11 +163,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
   },
   medicineName: {
+    flex: 1,
     fontSize: 13,
     color: '#1E293B',
     fontWeight: '600',
+  },
+  medicineMeta: {
+    fontSize: 12,
+    color: '#0F766E',
+    fontWeight: '700',
+  },
+  totalRow: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  totalLabel: {
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '700',
+  },
+  totalAmount: {
+    fontSize: 13,
+    color: '#0F172A',
+    fontWeight: '800',
   },
   actionButtons: {
     flexDirection: 'row',
